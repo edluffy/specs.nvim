@@ -3,17 +3,8 @@ local opts = {}
 local M = {}
 
 local old_cur
-local old_win
 
 function M.on_cursor_moved()
-    local win = vim.api.nvim_get_current_win()
-    if old_win then
-        if(win ~= old_win) then
-            M.show_specs()
-        end
-    end
-    old_win = win
-
     local cur = vim.api.nvim_win_get_cursor(0)
     if old_cur then
         jump = math.abs(cur[1]-old_cur[1])
@@ -21,16 +12,15 @@ function M.on_cursor_moved()
             M.show_specs()
         end
     end
-    -- print(vim.inspect(cur))
-
     old_cur = cur
 end
 
 function M.show_specs()
+
     local row = vim.fn.winline()-1
     local col = vim.fn.wincol()
     local bufh = vim.api.nvim_create_buf(false, true)
-    win_id = vim.api.nvim_open_win(bufh, false, {
+    local win_id = vim.api.nvim_open_win(bufh, false, {
         relative='win',
         width = opts.popup.width*2 + 1,
         height = 1, 
@@ -50,7 +40,7 @@ function M.show_specs()
             if not (can_blend or can_resize) then
                 vim.loop.close(timer)
                 vim.api.nvim_win_close(win_id, true)
-                -- print("Timer done")
+                print("Timer done")
             end
         end
     end))
