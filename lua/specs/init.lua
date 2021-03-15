@@ -16,62 +16,67 @@ function M.on_cursor_moved()
 end
 
 function M.show_specs()
-
-    local row = vim.fn.winline()-1
-    local col = vim.fn.wincol()
     local bufh = vim.api.nvim_create_buf(false, true)
     local win_id = vim.api.nvim_open_win(bufh, false, {
         relative='win',
-        width = opts.popup.width*2 + 1,
+        width = 1,
         height = 1, 
-        col = col,
-        row = row,
+        col = vim.fn.wincol()-1,
+        row = vim.fn.winline()-1,
         style = 'minimal'
     })
-    vim.api.nvim_win_set_option(win_id, "winblend", opts.popup.blend)
 
-    local can_fade = true
-    local can_resize = true
+    local cnt = 0
     local timer = vim.loop.new_timer()
     vim.loop.timer_start(timer, opts.popup.delay_ms, opts.popup.inc_ms, vim.schedule_wrap(function()
         if vim.api.nvim_win_is_valid(win_id) then
-            if can_fade then can_fade = opts.popup.fader(win_id) end
-            if can_resize then can_resize = opts.popup.resizer(win_id) end
-            if not (can_blend or can_resize) then
+            local fade_done = opts.popup.fader(win_id, cnt)
+            local resize_done = opts.popup.resizer(win_id, cnt)
+
+            if fade_done or resize_done then
                 vim.loop.close(timer)
                 vim.api.nvim_win_close(win_id, true)
-                print("Timer done")
             end
+            cnt = cnt+1
         end
     end))
 end
 
 -- Used as the default fader
-function M.linear_fader(win_id)
-    local blend = vim.api.nvim_win_get_option(win_id, "winblend")
-    vim.api.nvim_win_set_option(win_id, "winblend", blend+1)
-    return (blend+1 < 100)
+function M.linear_fader(win_id, cnt)
+    if opts.popup.blend+cnt < 100 then
+        vim.api.nvim_win_set_option(win_id, "winblend", opts.popup.blend+cnt)
+        return false
+    else return true end
 end
 
-function M.pulse_fader(win_id)
+function M.pulse_fader(win_id, cnt)
 end
 
 -- function M.exp_fader()
 -- end
 
-function M.shrink_resizer(win_id)
-    local config = vim.api.nvim_win_get_config(win_id)
-    config['width'] = config['width']-1
-    config['col'][false] = vim.fn.wincol()-config['width']/2
-    vim.api.nvim_win_set_config(win_id, config)
-    return (config['width']-1 > 0)
+function M.shrink_resizer(win_id, cnt)
+    if opts.popup.width-cnt > 0 then
+        local config = {
+            relative = "win",
+            row = vim.fn.winline()-1,
+            col = { 
+                [false] = vim.fn.wincol()-(opts.popup.width-cnt)/2,
+                [true] = 3 -- temporary
+            },
+        }
+        vim.api.nvim_win_set_width(win_id, opts.popup.width-cnt)
+        vim.api.nvim_win_set_config(win_id, config)
+        return false
+    else return true end
 end
 
-function M.slide_resizer(win_id)
-    local config = vim.api.nvim_win_get_config(win_id)
-    config['width'] = config['width']-1
-    vim.api.nvim_win_set_config(win_id, config)
-    return (config['width']-1 > 0)
+function M.slide_resizer(win_id, cnt)
+    if opts.popup.width-cnt > 0 then
+        vim.api.nvim_win_set_width(win_id, opts.popup.width-cnt)
+        return false
+    else return true end
 end
 
 -- function M.exp_resizer()
@@ -84,8 +89,7 @@ function M.setup(user_opts)
 end
 
 function M.create_autocmds(opts)
-    vim.cmd("augroup Specs")
-    vim.cmd("autocmd!")
+    vim.cmd("augroup Specs") vim.cmd("autocmd!")
     if opts.show_jumps then
         vim.cmd("silent autocmd CursorMoved * :lua require('specs').on_cursor_moved()")
     end
