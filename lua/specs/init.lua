@@ -52,6 +52,17 @@ function M.linear_fader(win_id, cnt)
 end
 
 
+--[[ ▁▁▁▁▂▂▂▃▃▃▄▄▅▆▇ ]]--
+
+function M.exp_fader(win_id, cnt)
+    local new_bl = math.floor(opts.popup.blend+math.exp(cnt/10))
+    if new_bl < 100 then
+        vim.api.nvim_win_set_option(win_id, "winblend", new_bl)
+        return false
+    else return true end
+end
+
+
 --[[ ▁▂▃▄▅▆▇█▇▆▅▄▃▂▁ ]]--
 
 function M.pulse_fader(win_id, cnt)
@@ -65,9 +76,6 @@ function M.pulse_fader(win_id, cnt)
     else return true end
 end
 
--- function M.exp_fader()
--- end
---
 
 --[[ ░░▒▒▓█████▓▒▒░░ ]]--
 
