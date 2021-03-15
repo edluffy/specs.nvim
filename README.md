@@ -13,7 +13,7 @@ Plug 'edluffy/specs.nvim'
 ```
 ## Usage
 If you are using init.vim instead of init.lua, remember to wrap block below with `lua << EOF` and `EOF`
-```
+```lua
 require('specs').setup{ 
     show_jumps  = true,
     min_jump = 30,
