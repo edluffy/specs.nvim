@@ -1,5 +1,4 @@
 local opts = {}
-
 local M = {}
 
 local old_cur
@@ -33,7 +32,7 @@ function M.show_specs()
             local fade_done = opts.popup.fader(win_id, cnt)
             local resize_done = opts.popup.resizer(win_id, cnt)
 
-            if fade_done or resize_done then
+            if fade_done and resize_done then
                 vim.loop.close(timer)
                 vim.api.nvim_win_close(win_id, true)
             end
@@ -43,6 +42,8 @@ function M.show_specs()
 end
 
 -- Used as the default fader
+--[[ ▁▁▂▂▃▃▄▄▅▅▆▆▇▇██ ]]--
+
 function M.linear_fader(win_id, cnt)
     if opts.popup.blend+cnt < 100 then
         vim.api.nvim_win_set_option(win_id, "winblend", opts.popup.blend+cnt)
@@ -50,11 +51,25 @@ function M.linear_fader(win_id, cnt)
     else return true end
 end
 
+
+--[[ ▁▂▃▄▅▆▇█▇▆▅▄▃▂▁ ]]--
+
 function M.pulse_fader(win_id, cnt)
+    local bl = opts.popup.blend
+    if cnt < (100-bl)/2 then
+        vim.api.nvim_win_set_option(win_id, "winblend", bl+cnt)
+        return false
+    elseif cnt < 100-bl then
+        vim.api.nvim_win_set_option(win_id, "winblend", 100-cnt)
+        return false
+    else return true end
 end
 
 -- function M.exp_fader()
 -- end
+--
+
+--[[ ░░▒▒▓█████▓▒▒░░ ]]--
 
 function M.shrink_resizer(win_id, cnt)
     if opts.popup.width-cnt > 0 then
@@ -72,9 +87,22 @@ function M.shrink_resizer(win_id, cnt)
     else return true end
 end
 
+
+--[[ ████▓▓▓▒▒▒▒░░░░ ]]--
+
 function M.slide_resizer(win_id, cnt)
     if opts.popup.width-cnt > 0 then
         vim.api.nvim_win_set_width(win_id, opts.popup.width-cnt)
+        return false
+    else return true end
+end
+
+
+--[[ ███████████████ ]]--
+
+function M.empty_resizer(win_id, cnt)
+    if opts.popup.width-cnt > 0 then
+        vim.api.nvim_win_set_width(win_id, opts.popup.width)
         return false
     else return true end
 end
