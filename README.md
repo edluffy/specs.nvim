@@ -1,6 +1,7 @@
 # specs.nvim 👓
-Specs.nvim - show where your cursor moves when jumping large distances (e.g between windows). Fast and lightweight, written completely in Lua.
+Show where your cursor moves when jumping large distances (e.g between windows). Fast and lightweight, written completely in Lua. WIP.
 
+![demo](https://user-images.githubusercontent.com/28115337/111098526-90923e00-853b-11eb-8e7c-c5892d64c180.gif)
 ## Install
 Using [packer.nvim](https://github.com/wbthomason/packer.nvim):
 ```lua
