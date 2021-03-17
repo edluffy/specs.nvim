@@ -1,5 +1,6 @@
-local opts = {}
 local M = {}
+
+local opts = {}
 
 local old_cur
 
@@ -115,16 +116,25 @@ function M.empty_resizer(win_id, cnt)
     else return true end
 end
 
--- function M.exp_resizer()
--- end
---
+local DEFAULT_OPTS = {
+    show_jumps  = true,
+    min_jump = 30,
+    popup = {
+        delay_ms = 10, 
+        inc_ms = 5,
+        blend = 10,
+        width = 20,
+        fader = M.exp_fader,
+        resizer = M.shrink_resizer
+    }
+}
 
 function M.setup(user_opts)
-    opts = user_opts or {}
-    M.create_autocmds(opts)
+    opts = vim.tbl_deep_extend("force", DEFAULT_OPTS, user_opts)
+    M.create_autocmds()
 end
 
-function M.create_autocmds(opts)
+function M.create_autocmds()
     vim.cmd("augroup Specs") vim.cmd("autocmd!")
     if opts.show_jumps then
         vim.cmd("silent autocmd CursorMoved * :lua require('specs').on_cursor_moved()")
