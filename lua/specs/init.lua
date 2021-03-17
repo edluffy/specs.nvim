@@ -34,8 +34,8 @@ function M.show_specs()
 
     vim.loop.timer_start(timer, opts.popup.delay_ms, opts.popup.inc_ms, vim.schedule_wrap(function()
         if vim.api.nvim_win_is_valid(win_id) then
-            local bl = opts.popup.fader(win_id, opts.popup.blend, cnt)
-            local dm = opts.popup.resizer(win_id, {opts.popup.width, cursor_col}, cnt)
+            local bl = opts.popup.fader(opts.popup.blend, cnt)
+            local dm = opts.popup.resizer(opts.popup.width, cursor_col, cnt)
 
             if bl ~= nil then
                 vim.api.nvim_win_set_option(win_id, "winblend", bl)
@@ -56,8 +56,8 @@ end
 
 --[[ ▁▁▂▂▃▃▄▄▅▅▆▆▇▇██ ]]--
 
-function M.linear_fader(win_id, bl, cnt)
-    if bl + cnt <= 100 then
+function M.linear_fader(blend, cnt)
+    if blend + cnt <= 100 then
         return cnt
     else return nil end
 end
@@ -65,59 +65,53 @@ end
 
 --[[ ▁▁▁▁▂▂▂▃▃▃▄▄▅▆▇ ]]--
 
-function M.exp_fader(win_id, bl, cnt)
-    if bl + math.floor(math.exp(cnt/10)) <= 100 then
-        return bl + math.floor(math.exp(cnt/10))
+function M.exp_fader(blend, cnt)
+    if blend + math.floor(math.exp(cnt/10)) <= 100 then
+        return blend + math.floor(math.exp(cnt/10))
     else return nil end
 end
 
 
 --[[ ▁▂▃▄▅▆▇█▇▆▅▄▃▂▁ ]]--
              
-function M.pulse_fader(win_id, bl, cnt)
-    if cnt < (100-bl)/2 then
+function M.pulse_fader(blend, cnt)
+    if cnt < (100-blend)/2 then
         return cnt
-    elseif cnt < 100-bl then
+    elseif cnt < 100-blend then
         return 100-cnt
     else return nil end
 end
 
 --[[ ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ ]]--
 
-function M.empty_fader(win_id, bl, cnt)
+function M.empty_fader(blend, cnt)
     return nil
 end
 
 
 --[[ ░░▒▒▓█████▓▒▒░░ ]]--
 
-function M.shrink_resizer(win_id, dm, cnt)
-    width = dm[1]-cnt
-    col = dm[2] - width/2 +1
-    if width > 0 then
-        return {width, col}
+function M.shrink_resizer(width, ccol, cnt)
+    if width-cnt > 0 then
+        return {width-cnt, ccol-(width-cnt)/2 + 1}
     else return nil end
 end
 
 
 --[[ ████▓▓▓▒▒▒▒░░░░ ]]--
 
-function M.slide_resizer(win_id, dm, cnt)
-    width = dm[1]-cnt
-    col = dm[2]
-    if width > 0 then
-        return {width, col}
+function M.slide_resizer(width, ccol, cnt)
+    if width-cnt > 0 then
+        return {width-cnt, ccol}
     else return nil end
 end
 
 
 --[[ ███████████████ ]]--
 
-function M.empty_resizer(win_id, dm, cnt)
+function M.empty_resizer(width, ccol, cnt)
     if cnt < 100 then
-        width = dm[1]
-        col = dm[2] - width/2
-        return {width, col}
+        return {width, ccol - width/2}
     else return nil end
 end
 
