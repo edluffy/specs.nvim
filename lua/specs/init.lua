@@ -1,5 +1,4 @@
 local M = {}
-
 local opts = {}
 
 local old_cur
@@ -16,24 +15,37 @@ function M.on_cursor_moved()
 end
 
 function M.show_specs()
+    local cursor_col = vim.fn.wincol()-1
+    local cursor_row = vim.fn.winline()-1
     local bufh = vim.api.nvim_create_buf(false, true)
     local win_id = vim.api.nvim_open_win(bufh, false, {
         relative='win',
         width = 1,
         height = 1, 
-        col = vim.fn.wincol()-1,
-        row = vim.fn.winline()-1,
+        col = cursor_col,
+        row = cursor_row,
         style = 'minimal'
     })
+    vim.api.nvim_win_set_option(win_id, "winblend", opts.popup.blend)
 
     local cnt = 0
+    local config = vim.api.nvim_win_get_config(win_id)
     local timer = vim.loop.new_timer()
+
     vim.loop.timer_start(timer, opts.popup.delay_ms, opts.popup.inc_ms, vim.schedule_wrap(function()
         if vim.api.nvim_win_is_valid(win_id) then
-            local fade_done = opts.popup.fader(win_id, cnt)
-            local resize_done = opts.popup.resizer(win_id, cnt)
+            local bl = opts.popup.fader(win_id, opts.popup.blend, cnt)
+            local dm = opts.popup.resizer(win_id, {opts.popup.width, cursor_col}, cnt)
 
-            if fade_done and resize_done then
+            if bl ~= nil then
+                vim.api.nvim_win_set_option(win_id, "winblend", bl)
+            end
+            if dm ~= nil then
+                config["col"][false] = dm[2]
+                vim.api.nvim_win_set_config(win_id, config)
+                vim.api.nvim_win_set_width(win_id, dm[1])
+            end
+            if bl == nil and dm == nil then -- Done blending and resizing
                 vim.loop.close(timer)
                 vim.api.nvim_win_close(win_id, true)
             end
@@ -42,78 +54,71 @@ function M.show_specs()
     end))
 end
 
--- Used as the default fader
 --[[ ▁▁▂▂▃▃▄▄▅▅▆▆▇▇██ ]]--
 
-function M.linear_fader(win_id, cnt)
-    if opts.popup.blend+cnt < 100 then
-        vim.api.nvim_win_set_option(win_id, "winblend", opts.popup.blend+cnt)
-        return false
-    else return true end
+function M.linear_fader(win_id, bl, cnt)
+    if bl + cnt <= 100 then
+        return cnt
+    else return nil end
 end
 
 
 --[[ ▁▁▁▁▂▂▂▃▃▃▄▄▅▆▇ ]]--
 
-function M.exp_fader(win_id, cnt)
-    local new_bl = math.floor(opts.popup.blend+math.exp(cnt/10))
-    if new_bl < 100 then
-        vim.api.nvim_win_set_option(win_id, "winblend", new_bl)
-        return false
-    else return true end
+function M.exp_fader(win_id, bl, cnt)
+    if bl + math.floor(math.exp(cnt/10)) <= 100 then
+        return bl + math.floor(math.exp(cnt/10))
+    else return nil end
 end
 
 
 --[[ ▁▂▃▄▅▆▇█▇▆▅▄▃▂▁ ]]--
-
-function M.pulse_fader(win_id, cnt)
-    local bl = opts.popup.blend
+             
+function M.pulse_fader(win_id, bl, cnt)
     if cnt < (100-bl)/2 then
-        vim.api.nvim_win_set_option(win_id, "winblend", bl+cnt)
-        return false
+        return cnt
     elseif cnt < 100-bl then
-        vim.api.nvim_win_set_option(win_id, "winblend", 100-cnt)
-        return false
-    else return true end
+        return 100-cnt
+    else return nil end
+end
+
+--[[ ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ ]]--
+
+function M.empty_fader(win_id, bl, cnt)
+    return nil
 end
 
 
 --[[ ░░▒▒▓█████▓▒▒░░ ]]--
 
-function M.shrink_resizer(win_id, cnt)
-    if opts.popup.width-cnt > 0 then
-        local config = {
-            relative = "win",
-            row = vim.fn.winline()-1,
-            col = { 
-                [false] = vim.fn.wincol()-(opts.popup.width-cnt)/2,
-                [true] = 3 -- temporary
-            },
-        }
-        vim.api.nvim_win_set_width(win_id, opts.popup.width-cnt)
-        vim.api.nvim_win_set_config(win_id, config)
-        return false
-    else return true end
+function M.shrink_resizer(win_id, dm, cnt)
+    width = dm[1]-cnt
+    col = dm[2] - width/2 +1
+    if width > 0 then
+        return {width, col}
+    else return nil end
 end
 
 
 --[[ ████▓▓▓▒▒▒▒░░░░ ]]--
 
-function M.slide_resizer(win_id, cnt)
-    if opts.popup.width-cnt > 0 then
-        vim.api.nvim_win_set_width(win_id, opts.popup.width-cnt)
-        return false
-    else return true end
+function M.slide_resizer(win_id, dm, cnt)
+    width = dm[1]-cnt
+    col = dm[2]
+    if width > 0 then
+        return {width, col}
+    else return nil end
 end
 
 
 --[[ ███████████████ ]]--
 
-function M.empty_resizer(win_id, cnt)
-    if opts.popup.width-cnt > 0 then
-        vim.api.nvim_win_set_width(win_id, opts.popup.width)
-        return false
-    else return true end
+function M.empty_resizer(win_id, dm, cnt)
+    if cnt < 100 then
+        width = dm[1]
+        col = dm[2] - width/2
+        return {width, col}
+    else return nil end
 end
 
 local DEFAULT_OPTS = {
