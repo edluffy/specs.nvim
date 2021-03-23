@@ -26,7 +26,10 @@ function M.show_specs()
         row = cursor_row,
         style = 'minimal'
     })
+    vim.api.nvim_win_set_option(win_id, 'winhl', 'Normal:'.. opts.popup.winhl)
     vim.api.nvim_win_set_option(win_id, "winblend", opts.popup.blend)
+
+    
 
     local cnt = 0
     local config = vim.api.nvim_win_get_config(win_id)
@@ -123,6 +126,7 @@ local DEFAULT_OPTS = {
         inc_ms = 5,
         blend = 10,
         width = 20,
+        winhl = "PMenu",
         fader = M.exp_fader,
         resizer = M.shrink_resizer
     }
