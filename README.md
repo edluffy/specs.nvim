@@ -1,10 +1,16 @@
 # specs.nvim 👓
-Show where your cursor moves when jumping large distances (e.g between windows). Fast and lightweight, written completely in Lua. WIP.
+Show where your cursor moves when jumping large distances (e.g between windows). Fast and lightweight, written completely in Lua.
 
 ![demo](https://user-images.githubusercontent.com/28115337/111098526-90923e00-853b-11eb-8e7c-c5892d64c180.gif)
 
-New: added option for custom highlighting for popup:
-![demo2](https://user-images.githubusercontent.com/28115337/112231882-7b01d000-8c2f-11eb-9f06-e6e6e492a533.gif)
+![showcase8](https://user-images.githubusercontent.com/28115337/112546694-aa404a80-8db1-11eb-8b1a-588ee62bfca5.gif)
+![showcase7](https://user-images.githubusercontent.com/28115337/112546696-ab717780-8db1-11eb-8753-65205dd81535.gif)
+![showcase6](https://user-images.githubusercontent.com/28115337/112546697-ab717780-8db1-11eb-85f4-9d68c2884103.gif)
+![showcase5](https://user-images.githubusercontent.com/28115337/112546698-ac0a0e00-8db1-11eb-96bf-b1f3f5bca601.gif)
+![showcase4](https://user-images.githubusercontent.com/28115337/112546699-ac0a0e00-8db1-11eb-8c6a-a1ecbdca410f.gif)
+![showcase3](https://user-images.githubusercontent.com/28115337/112546700-ac0a0e00-8db1-11eb-80b7-f5ff0b9c052c.gif)
+![showcase2](https://user-images.githubusercontent.com/28115337/112546701-aca2a480-8db1-11eb-8338-1cf695404881.gif)
+![showcase1](https://user-images.githubusercontent.com/28115337/112546702-aca2a480-8db1-11eb-9cfb-8a068b06abf7.gif)
 
 ## Install
 Using [packer.nvim](https://github.com/wbthomason/packer.nvim):
