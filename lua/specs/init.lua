@@ -15,6 +15,9 @@ function M.on_cursor_moved()
 end
 
 function M.show_specs()
+    local buftype = vim.api.nvim_buf_get_option(0, 'buftype')
+    if buftype == 'nofile' then return end
+
     local cursor_col = vim.fn.wincol()-1
     local cursor_row = vim.fn.winline()-1
     local bufh = vim.api.nvim_create_buf(false, true)
@@ -28,8 +31,6 @@ function M.show_specs()
     })
     vim.api.nvim_win_set_option(win_id, 'winhl', 'Normal:'.. opts.popup.winhl)
     vim.api.nvim_win_set_option(win_id, "winblend", opts.popup.blend)
-
-    
 
     local cnt = 0
     local config = vim.api.nvim_win_get_config(win_id)
