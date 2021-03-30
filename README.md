@@ -38,6 +38,22 @@ require('specs').setup{
     }
 }
 ```
+
+Faders:
+- linear_fader   `▁▂▂▃▃▄▄▅▅▆▆▇▇██`
+- exp_fader      `▁▁▁▁▂▂▂▃▃▃▄▄▅▆▇`
+
+- pulse_fader    `▁▂▃▄▅▆▇█▇▆▅▄▃▂▁`
+
+- empty_fader    `▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁`
+
+Resizers:
+- shrink_resizer `░░▒▒▓█████▓▒▒░░`
+
+- slide_resizer  `████▓▓▓▒▒▒▒░░░░`
+
+- empty_resizer  `███████████████`
+
 You can implement your own custom fader/resizer functions for some pretty cool effects:
 ```lua
 require('specs').setup{ 
