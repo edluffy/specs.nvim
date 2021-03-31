@@ -73,3 +73,7 @@ require('specs').setup{
     }
 }
 ```
+## Planned Features
+- [ ] More builtin faders + resizers
+- [ ] Colorizers
+- [ ] Optional highlight on text yank
