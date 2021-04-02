@@ -6,7 +6,7 @@ local old_cur
 function M.on_cursor_moved()
     local cur = vim.api.nvim_win_get_cursor(0)
     if old_cur then
-        jump = math.abs(cur[1]-old_cur[1])
+        local jump = math.abs(cur[1]-old_cur[1])
         if jump >= opts.min_jump then
             M.show_specs()
         end
@@ -14,10 +14,37 @@ function M.on_cursor_moved()
     old_cur = cur
 end
 
+function M.should_show_specs(start_win_id)
+    if not vim.api.nvim_win_is_valid(start_win_id) then
+        return false
+    end
+
+    if type(opts.ignore_filetypes) ~= 'table' or type(opts.ignore_buftypes) ~= 'table' then
+        return true
+    end
+
+    local buftype, filetype, ok
+    ok, buftype = pcall(vim.api.nvim_buf_get_option, 0, 'buftype')
+
+    if ok and opts.ignore_buftypes[buftype] then
+        return false
+    end
+
+    ok, filetype = pcall(vim.api.nvim_buf_get_option, 0, 'filetype')
+
+    if ok and opts.ignore_filetypes[filetype] then
+        return false
+    end
+
+    return true
+end
+
 function M.show_specs()
-    local buftype = vim.api.nvim_buf_get_option(0, 'buftype')
     local start_win_id = vim.api.nvim_get_current_win()
-    if buftype == 'nofile' then return end
+
+    if not M.should_show_specs(start_win_id) then
+        return
+    end
 
     local cursor_col = vim.fn.wincol()-1
     local cursor_row = vim.fn.winline()-1
@@ -103,7 +130,7 @@ end
 
 --[[ ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ ]]--
 
-function M.empty_fader(blend, cnt)
+function M.empty_fader(_, _)
     return nil
 end
 
@@ -144,8 +171,12 @@ local DEFAULT_OPTS = {
         width = 20,
         winhl = "PMenu",
         fader = M.exp_fader,
-        resizer = M.shrink_resizer
-    }
+        resizer = M.shrink_resizer,
+    },
+    ignore_filetypes = {},
+    ignore_buftypes = {
+        nofile = true,
+    },
 }
 
 function M.setup(user_opts)
