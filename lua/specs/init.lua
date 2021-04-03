@@ -6,7 +6,7 @@ local old_cur
 function M.on_cursor_moved()
     local cur = vim.api.nvim_win_get_cursor(0)
     if old_cur then
-        jump = math.abs(cur[1]-old_cur[1])
+        local jump = math.abs(cur[1]-old_cur[1])
         if jump >= opts.min_jump then
             M.show_specs()
         end
@@ -14,9 +14,37 @@ function M.on_cursor_moved()
     old_cur = cur
 end
 
+function M.should_show_specs(start_win_id)
+    if not vim.api.nvim_win_is_valid(start_win_id) then
+        return false
+    end
+
+    if type(opts.ignore_filetypes) ~= 'table' or type(opts.ignore_buftypes) ~= 'table' then
+        return true
+    end
+
+    local buftype, filetype, ok
+    ok, buftype = pcall(vim.api.nvim_buf_get_option, 0, 'buftype')
+
+    if ok and opts.ignore_buftypes[buftype] then
+        return false
+    end
+
+    ok, filetype = pcall(vim.api.nvim_buf_get_option, 0, 'filetype')
+
+    if ok and opts.ignore_filetypes[filetype] then
+        return false
+    end
+
+    return true
+end
+
 function M.show_specs()
-    local buftype = vim.api.nvim_buf_get_option(0, 'buftype')
-    if buftype == 'nofile' then return end
+    local start_win_id = vim.api.nvim_get_current_win()
+
+    if not M.should_show_specs(start_win_id) then
+        return
+    end
 
     local cursor_col = vim.fn.wincol()-1
     local cursor_row = vim.fn.winline()-1
@@ -24,7 +52,7 @@ function M.show_specs()
     local win_id = vim.api.nvim_open_win(bufh, false, {
         relative='win',
         width = 1,
-        height = 1, 
+        height = 1,
         col = cursor_col,
         row = cursor_row,
         style = 'minimal'
@@ -35,8 +63,22 @@ function M.show_specs()
     local cnt = 0
     local config = vim.api.nvim_win_get_config(win_id)
     local timer = vim.loop.new_timer()
+    local closed = false
 
     vim.loop.timer_start(timer, opts.popup.delay_ms, opts.popup.inc_ms, vim.schedule_wrap(function()
+        if closed or vim.api.nvim_get_current_win() ~= start_win_id then
+            if not closed then
+                pcall(vim.loop.close, timer)
+                pcall(vim.api.nvim_win_close, win_id, true)
+
+                -- Callbacks might stack up before the timer actually gets closed, track that state
+                -- internally here instead
+                closed = true
+            end
+
+            return
+        end
+
         if vim.api.nvim_win_is_valid(win_id) then
             local bl = opts.popup.fader(opts.popup.blend, cnt)
             local dm = opts.popup.resizer(opts.popup.width, cursor_col, cnt)
@@ -77,7 +119,7 @@ end
 
 
 --[[ ▁▂▃▄▅▆▇█▇▆▅▄▃▂▁ ]]--
-             
+
 function M.pulse_fader(blend, cnt)
     if cnt < (100-blend)/2 then
         return cnt
@@ -88,7 +130,7 @@ end
 
 --[[ ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ ]]--
 
-function M.empty_fader(blend, cnt)
+function M.empty_fader(_, _)
     return nil
 end
 
@@ -123,14 +165,18 @@ local DEFAULT_OPTS = {
     show_jumps  = true,
     min_jump = 30,
     popup = {
-        delay_ms = 10, 
+        delay_ms = 10,
         inc_ms = 5,
         blend = 10,
         width = 20,
         winhl = "PMenu",
         fader = M.exp_fader,
-        resizer = M.shrink_resizer
-    }
+        resizer = M.shrink_resizer,
+    },
+    ignore_filetypes = {},
+    ignore_buftypes = {
+        nofile = true,
+    },
 }
 
 function M.setup(user_opts)

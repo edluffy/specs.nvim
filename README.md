@@ -35,7 +35,11 @@ require('specs').setup{
         winhl = "PMenu",
         fader = require('specs').linear_fader,
         resizer = require('specs').shrink_resizer
-    }
+    },
+    ignore_filetypes = {},
+    ignore_buftypes = {
+        nofile = true,
+    },
 }
 ```
 
