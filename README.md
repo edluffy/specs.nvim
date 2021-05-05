@@ -43,6 +43,9 @@ require('specs').setup{
 }
 ```
 
+- `:lua require('specs').toggle()`
+    - Toggle Specs on/off
+
 Faders:
 - linear_fader   `▁▂▂▃▃▄▄▅▅▆▆▇▇██`
 - exp_fader      `▁▁▁▁▂▂▂▃▃▃▄▄▅▆▇`
