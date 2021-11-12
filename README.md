@@ -80,6 +80,21 @@ require('specs').setup{
     }
 }
 ```
+
+### Keybinds
+
+You can invoke specs from anywhere by using `:lua require('specs').show_specs()`  
+Add a keybind for this to make it easy to find your cursor at any time.
+
+```lua
+-- Press <C-b> to call specs!
+vim.api.nvim_set_keymap('n', '<C-b>', ':lua require("specs").show_specs()', { noremap = true, silent = true })
+
+-- You can even bind it to search jumping and more, example:
+vim.api.nvim_set_keymap('n', 'n', 'n:lua require("specs").show_specs()<CR>', { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', 'N', 'N:lua require("specs").show_specs()<CR>', { noremap = true, silent = true })
+```
+
 ## Planned Features
 - [ ] More builtin faders + resizers
 - [ ] Colorizers
