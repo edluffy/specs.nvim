@@ -181,8 +181,10 @@ function M.create_autocmds()
     vim.cmd [[
     augroup Specs
     autocmd!
-    silent autocmd CursorMoved * lua require('specs').on_cursor_moved()
-    silent autocmd WinEnter    * lua require('specs').on_win_enter()
+    " Add delay to correct cursor position, some users may use plugins like 'lastplace',
+    " which may cause the popup position to be displayed inaccurately
+    silent autocmd CursorMoved * lua vim.defer_fn(require('specs').on_cursor_moved, 5)
+    silent autocmd WinEnter    * lua vim.defer_fn(require('specs').on_win_enter, 5)
     augroup END
   ]]
     enabled = true
@@ -215,7 +217,9 @@ local function get_default_opts()
             fader = M.exp_fader,
             resizer = M.shrink_resizer,
         },
-        ignore_filetypes = {},
+        ignore_filetypes = {
+            TelescopePrompt = true,
+        },
         ignore_buftypes = {
             nofile = true,
         },

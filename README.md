@@ -45,7 +45,9 @@ require('specs').setup{
         fader = require('specs').linear_fader,
         resizer = require('specs').shrink_resizer
     },
-    ignore_filetypes = {},
+    ignore_filetypes = {
+        TelescopePrompt = true,
+    },
     ignore_buftypes = {
         nofile = true,
     },
