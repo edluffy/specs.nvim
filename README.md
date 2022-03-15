@@ -50,6 +50,7 @@ require('specs').setup{
     },
     ignore_buftypes = {
         nofile = true,
+        prompt = true,
     },
 }
 ```

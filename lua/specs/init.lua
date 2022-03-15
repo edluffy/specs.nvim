@@ -222,6 +222,7 @@ local function get_default_opts()
         },
         ignore_buftypes = {
             nofile = true,
+            prompt = true,
         },
     }
 end
