@@ -1,211 +1,237 @@
 local M = {}
+
+local uv = vim.loop
+local api = vim.api
+
 local opts = {}
 
-local old_cur
-local au_toggle
+local old_cursor
 
 function M.on_cursor_moved()
-    local cur = vim.api.nvim_win_get_cursor(0)
-    if old_cur then
-        local jump = math.abs(cur[1]-old_cur[1])
+    local cursor = api.nvim_win_get_cursor(0)
+    if old_cursor then
+        local jump = math.abs(cursor[1] - old_cursor[1])
         if jump >= opts.min_jump then
             M.show_specs()
         end
     end
-    old_cur = cur
+    old_cursor = cursor
 end
 
-function M.should_show_specs(start_win_id)
-    if not vim.api.nvim_win_is_valid(start_win_id) then
-        return false
+function M.on_win_enter()
+    if opts.show_on_win_enter then
+        M.show_specs()
     end
-
-    if type(opts.ignore_filetypes) ~= 'table' or type(opts.ignore_buftypes) ~= 'table' then
-        return true
-    end
-
-    local buftype, filetype, ok
-    ok, buftype = pcall(vim.api.nvim_buf_get_option, 0, 'buftype')
-
-    if ok and opts.ignore_buftypes[buftype] then
-        return false
-    end
-
-    ok, filetype = pcall(vim.api.nvim_buf_get_option, 0, 'filetype')
-
-    if ok and opts.ignore_filetypes[filetype] then
-        return false
-    end
-
-    return true
 end
+
+local function should_show_specs(start_winid)
+    return api.nvim_win_is_valid(start_winid)
+        and not opts.ignore_buftypes[vim.bo.buftype]
+        and not opts.ignore_filetypes[vim.bo.filetype]
+end
+
+local timer
 
 function M.show_specs()
-    local start_win_id = vim.api.nvim_get_current_win()
-
-    if not M.should_show_specs(start_win_id) then
+    if timer and timer:is_active() then
+        -- happens on WinEnter
         return
     end
 
-    local cursor_col = vim.fn.wincol()-1
-    local cursor_row = vim.fn.winline()-1
-    local bufh = vim.api.nvim_create_buf(false, true)
-    local win_id = vim.api.nvim_open_win(bufh, false, {
-        relative='win',
+    local start_winid = api.nvim_get_current_win()
+    if not should_show_specs(start_winid) then
+        return
+    end
+
+    local cursor_col = vim.fn.wincol() - 1
+    local cursor_row = vim.fn.winline() - 1
+    local bufh = api.nvim_create_buf(false, true)
+    local win_id = api.nvim_open_win(bufh, false, {
+        relative = 'win',
         width = 1,
         height = 1,
         col = cursor_col,
         row = cursor_row,
-        style = 'minimal'
+        style = 'minimal',
     })
-    vim.api.nvim_win_set_option(win_id, 'winhl', 'Normal:'.. opts.popup.winhl)
-    vim.api.nvim_win_set_option(win_id, "winblend", opts.popup.blend)
+    vim.wo[win_id].winhl = 'Normal:' .. opts.popup.winhl
+    vim.wo[win_id].winblend = opts.popup.blend
 
     local cnt = 0
-    local config = vim.api.nvim_win_get_config(win_id)
-    local timer = vim.loop.new_timer()
+    local config = api.nvim_win_get_config(win_id)
     local closed = false
 
-    vim.loop.timer_start(timer, opts.popup.delay_ms, opts.popup.inc_ms, vim.schedule_wrap(function()
-        if closed or vim.api.nvim_get_current_win() ~= start_win_id then
-            if not closed then
-                pcall(vim.loop.close, timer)
-                pcall(vim.api.nvim_win_close, win_id, true)
+    timer = uv.new_timer()
+    timer:start(
+        opts.popup.delay_ms,
+        opts.popup.inc_ms,
+        vim.schedule_wrap(function()
+            if closed or api.nvim_get_current_win() ~= start_winid then
+                if not closed then
+                    pcall(uv.close, timer)
+                    pcall(api.nvim_win_close, win_id, true)
 
-                -- Callbacks might stack up before the timer actually gets closed, track that state
-                -- internally here instead
-                closed = true
+                    -- Callbacks might stack up before the timer actually gets closed, track that state
+                    -- internally here instead
+                    closed = true
+                end
+                return
             end
 
-            return
-        end
+            if api.nvim_win_is_valid(win_id) then
+                local bl = opts.popup.fader(opts.popup.blend, cnt)
+                local dm = opts.popup.resizer(opts.popup.width, cursor_col, cnt)
 
-        if vim.api.nvim_win_is_valid(win_id) then
-            local bl = opts.popup.fader(opts.popup.blend, cnt)
-            local dm = opts.popup.resizer(opts.popup.width, cursor_col, cnt)
-
-            if bl ~= nil then
-                vim.api.nvim_win_set_option(win_id, "winblend", bl)
+                if bl ~= nil then
+                    vim.wo[win_id].winblend = bl
+                end
+                if dm ~= nil then
+                    config['col'][false] = dm[2]
+                    api.nvim_win_set_config(win_id, config)
+                    api.nvim_win_set_width(win_id, dm[1])
+                end
+                if bl == nil and dm == nil then -- Done blending and resizing
+                    timer:close()
+                    api.nvim_win_close(win_id, true)
+                end
+                cnt = cnt + 1
             end
-            if dm ~= nil then
-                config["col"][false] = dm[2]
-                vim.api.nvim_win_set_config(win_id, config)
-                vim.api.nvim_win_set_width(win_id, dm[1])
-            end
-            if bl == nil and dm == nil then -- Done blending and resizing
-                vim.loop.close(timer)
-                vim.api.nvim_win_close(win_id, true)
-            end
-            cnt = cnt+1
-        end
-    end))
+        end)
+    )
 end
 
---[[ ▁▁▂▂▃▃▄▄▅▅▆▆▇▇██ ]]--
+--[[ ▁▁▂▂▃▃▄▄▅▅▆▆▇▇██ ]]
+--
 
 function M.linear_fader(blend, cnt)
     if blend + cnt <= 100 then
         return cnt
-    else return nil end
+    else
+        return nil
+    end
 end
 
-
---[[ ▁▁▁▁▂▂▂▃▃▃▄▄▅▆▇ ]]--
+--[[ ▁▁▁▁▂▂▂▃▃▃▄▄▅▆▇ ]]
+--
 
 function M.exp_fader(blend, cnt)
-    if blend + math.floor(math.exp(cnt/10)) <= 100 then
-        return blend + math.floor(math.exp(cnt/10))
-    else return nil end
+    if blend + math.floor(math.exp(cnt / 10)) <= 100 then
+        return blend + math.floor(math.exp(cnt / 10))
+    else
+        return nil
+    end
 end
 
-
---[[ ▁▂▃▄▅▆▇█▇▆▅▄▃▂▁ ]]--
+--[[ ▁▂▃▄▅▆▇█▇▆▅▄▃▂▁ ]]
+--
 
 function M.pulse_fader(blend, cnt)
-    if cnt < (100-blend)/2 then
+    if cnt < (100 - blend) / 2 then
         return cnt
-    elseif cnt < 100-blend then
-        return 100-cnt
-    else return nil end
+    elseif cnt < 100 - blend then
+        return 100 - cnt
+    else
+        return nil
+    end
 end
 
---[[ ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ ]]--
+--[[ ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ ]]
+--
 
 function M.empty_fader(_, _)
     return nil
 end
 
-
---[[ ░░▒▒▓█████▓▒▒░░ ]]--
+--[[ ░░▒▒▓█████▓▒▒░░ ]]
+--
 
 function M.shrink_resizer(width, ccol, cnt)
-    if width-cnt > 0 then
-        return {width-cnt, ccol-(width-cnt)/2 + 1}
-    else return nil end
+    if width - cnt > 0 then
+        return { width - cnt, ccol - (width - cnt) / 2 + 1 }
+    else
+        return nil
+    end
 end
 
-
---[[ ████▓▓▓▒▒▒▒░░░░ ]]--
+--[[ ████▓▓▓▒▒▒▒░░░░ ]]
+--
 
 function M.slide_resizer(width, ccol, cnt)
-    if width-cnt > 0 then
-        return {width-cnt, ccol}
-    else return nil end
+    if width - cnt > 0 then
+        return { width - cnt, ccol }
+    else
+        return nil
+    end
 end
 
-
---[[ ███████████████ ]]--
+--[[ ███████████████ ]]
+--
 
 function M.empty_resizer(width, ccol, cnt)
     if cnt < 100 then
-        return {width, ccol - width/2}
-    else return nil end
+        return { width, ccol - width / 2 }
+    else
+        return nil
+    end
 end
 
-local DEFAULT_OPTS = {
-    show_jumps  = true,
-    min_jump = 30,
-    popup = {
-        delay_ms = 10,
-        inc_ms = 5,
-        blend = 10,
-        width = 20,
-        winhl = "PMenu",
-        fader = M.exp_fader,
-        resizer = M.shrink_resizer,
-    },
-    ignore_filetypes = {},
-    ignore_buftypes = {
-        nofile = true,
-    },
-}
+local enabled
 
-function M.setup(user_opts)
-    opts = vim.tbl_deep_extend("force", DEFAULT_OPTS, user_opts)
-    M.create_autocmds()
+function M.create_autocmds()
+    vim.cmd [[
+    augroup Specs
+    autocmd!
+    " Add delay to correct cursor position, some users may use plugins like 'lastplace',
+    " which may cause the popup position to be displayed inaccurately
+    silent autocmd CursorMoved * lua vim.defer_fn(require('specs').on_cursor_moved, 5)
+    silent autocmd WinEnter    * lua vim.defer_fn(require('specs').on_win_enter, 5)
+    augroup END
+  ]]
+    enabled = true
+end
+
+function M.clear_autocmds()
+    vim.cmd 'augroup Specs | autocmd! | augroup END'
+    enabled = false
 end
 
 function M.toggle()
-    if au_toggle then
+    if enabled then
         M.clear_autocmds()
     else
         M.create_autocmds()
     end
 end
 
-function M.create_autocmds()
-    vim.cmd("augroup Specs") vim.cmd("autocmd!")
-    if opts.show_jumps then
-        vim.cmd("silent autocmd CursorMoved * :lua require('specs').on_cursor_moved()")
-    end
-    vim.cmd("augroup END")
-    au_toggle = true
+local function get_default_opts()
+    return {
+        show_jumps = true,
+        show_on_win_enter = false,
+        min_jump = 30,
+        popup = {
+            delay_ms = 10,
+            inc_ms = 5,
+            blend = 10,
+            width = 20,
+            winhl = 'PMenu',
+            fader = M.exp_fader,
+            resizer = M.shrink_resizer,
+        },
+        ignore_filetypes = {
+            TelescopePrompt = true,
+        },
+        ignore_buftypes = {
+            nofile = true,
+            prompt = true,
+        },
+    }
 end
 
-function M.clear_autocmds()
-    vim.cmd("augroup Specs") vim.cmd("autocmd!")
-    vim.cmd("augroup END")
-    au_toggle = false
+function M.setup(user_opts)
+    opts = vim.tbl_deep_extend('force', get_default_opts(), user_opts)
+    if opts.show_jumps then
+        M.create_autocmds()
+    end
 end
 
 return M
