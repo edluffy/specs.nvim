@@ -47,28 +47,11 @@ function M.show_specs(popup)
         return
     end
 
-    local function dcopy (t) 
-      local orig_type = type(orig)
-      local copy
-      if orig_type == 'table' then
-        copy = {}
-        for orig_key, orig_value in next, orig, nil do
-          copy[deepcopy(orig_key)] = deepcopy(orig_value)
-        end
-        setmetatable(copy, deepcopy(getmetatable(orig)))
-      else -- number, string, boolean, etc
-        copy = orig
-      end
-      return copy
-    end
-
     if popup == nil then
-      popup = opts.popup
+      popup = {}
     end
 
-    local originalOptions = deep_copy(opts)
-    local instanceOptions = deep_copy(opts)
-    instanceOptions.popup = popup
+    local _opts = vim.tbl_deep_extend("force", opts, {popup = popup})
 
     local cursor_col = vim.fn.wincol()-1
     local cursor_row = vim.fn.winline()-1
@@ -81,15 +64,15 @@ function M.show_specs(popup)
         row = cursor_row,
         style = 'minimal'
     })
-    vim.api.nvim_win_set_option(win_id, 'winhl', 'Normal:'.. instanceOptions.popup.winhl)
-    vim.api.nvim_win_set_option(win_id, "winblend", instanceOptions.popup.blend)
+    vim.api.nvim_win_set_option(win_id, 'winhl', 'Normal:'.. _opts.popup.winhl)
+    vim.api.nvim_win_set_option(win_id, "winblend", _opts.popup.blend)
 
     local cnt = 0
     local config = vim.api.nvim_win_get_config(win_id)
     local timer = vim.loop.new_timer()
     local closed = false
 
-    vim.loop.timer_start(timer, instanceOptions.popup.delay_ms, instanceOptions.popup.inc_ms, vim.schedule_wrap(function()
+    vim.loop.timer_start(timer, _opts.popup.delay_ms, _opts.popup.inc_ms, vim.schedule_wrap(function()
         if closed or vim.api.nvim_get_current_win() ~= start_win_id then
             if not closed then
                 pcall(vim.loop.close, timer)
@@ -98,15 +81,14 @@ function M.show_specs(popup)
                 -- Callbacks might stack up before the timer actually gets closed, track that state
                 -- internally here instead
                 closed = true
-                opts = originalOptions
             end
 
             return
         end
 
         if vim.api.nvim_win_is_valid(win_id) then
-            local bl = instanceOptions.popup.fader(instanceOptions.popup.blend, cnt)
-            local dm = instanceOptions.popup.resizer(instanceOptions.popup.width, cursor_col, cnt)
+            local bl = _opts.popup.fader(_opts.popup.blend, cnt)
+            local dm = _opts.popup.resizer(_opts.popup.width, cursor_col, cnt)
 
             if bl ~= nil then
                 vim.api.nvim_win_set_option(win_id, "winblend", bl)
@@ -123,6 +105,7 @@ function M.show_specs(popup)
             cnt = cnt+1
         end
     end))
+
 end
 
 --[[ ▁▁▂▂▃▃▄▄▅▅▆▆▇▇██ ]]--
@@ -131,6 +114,14 @@ function M.linear_fader(blend, cnt)
     if blend + cnt <= 100 then
         return cnt
     else return nil end
+end
+
+--[[ ⌣/⌢\⌣/⌢\⌣/⌢\⌣/⌢\ ]]--
+
+function M.sinus_fader(blend, cnt)
+  if cnt <= 100 then
+    return math.ceil((math.sin(cnt * (1 / blend)) * 0.5 + 0.5) * 100)
+  else return nil end
 end
 
 
