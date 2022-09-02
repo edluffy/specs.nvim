@@ -5,9 +5,9 @@ local old_cur
 local au_toggle
 
 function M.on_cursor_moved()
-    local cur = vim.api.nvim_win_get_cursor(0)
+    local cur = vim.fn.winline() + vim.api.nvim_win_get_position(0)[1]
     if old_cur then
-        local jump = math.abs(cur[1]-old_cur[1])
+        local jump = math.abs(cur-old_cur)
         if jump >= opts.min_jump then
             M.show_specs()
         end
