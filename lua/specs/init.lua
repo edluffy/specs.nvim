@@ -20,6 +20,10 @@ function M.should_show_specs(start_win_id)
         return false
     end
 
+    if vim.fn.getcmdpos() ~= 0 then
+        return false
+    end
+
     if type(opts.ignore_filetypes) ~= 'table' or type(opts.ignore_buftypes) ~= 'table' then
         return true
     end
