@@ -60,13 +60,15 @@ function M.show_specs(popup)
     local cursor_col = vim.fn.wincol()-1
     local cursor_row = vim.fn.winline()-1
     local bufh = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_set_buf_option(bufh, 'filetype', 'specs') -- avoid conflict
     local win_id = vim.api.nvim_open_win(bufh, false, {
         relative= 'win',
         width = 1,
         height = 1,
         col = cursor_col,
         row = cursor_row,
-        style = 'minimal'
+        style = 'minimal',
+        noautocmd = true,
     })
     vim.api.nvim_win_set_option(win_id, 'winhl', 'Normal:'.. _opts.popup.winhl)
     vim.api.nvim_win_set_option(win_id, "winblend", _opts.popup.blend)
