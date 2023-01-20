@@ -67,7 +67,8 @@ function M.show_specs(popup)
         height = 1,
         col = cursor_col,
         row = cursor_row,
-        style = 'minimal'
+        style = 'minimal',
+        noautocmd = true,
     })
     vim.api.nvim_win_set_option(win_id, 'winhl', 'Normal:'.. _opts.popup.winhl)
     vim.api.nvim_win_set_option(win_id, "winblend", _opts.popup.blend)
