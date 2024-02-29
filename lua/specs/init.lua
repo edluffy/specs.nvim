@@ -60,7 +60,7 @@ function M.show_specs(popup)
     local cursor_col = vim.fn.wincol()-1
     local cursor_row = vim.fn.winline()-1
     local bufh = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_set_buf_option(bufh, 'filetype', 'specs') -- avoid conflict
+    vim.api.nvim_set_option_value('filetype', 'specs.nvim', {buf = bufh}) -- avoid conflict
     local win_id = vim.api.nvim_open_win(bufh, false, {
         relative= 'win',
         width = 1,
